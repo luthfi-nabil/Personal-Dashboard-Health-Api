@@ -35,6 +35,7 @@ pub struct InsulinAssignUsage {
     pub insulin_assign_id: Uuid,
     pub insulin_item_id: Uuid,
     pub batch_no: String,
+    pub insulin_item_name: String,
     #[serde(skip_deserializing)]
     pub added_at: NaiveDateTime,
     pub notes: Option<String>,

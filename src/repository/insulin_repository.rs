@@ -200,7 +200,7 @@ pub fn select_all_insulin_assign(conn: &mut PooledConn) -> Result<Vec<InsulinAss
 
 pub fn select_all_insulin_assign_usage(conn: &mut PooledConn) -> Result<Vec<InsulinAssignUsage>, Box<dyn Error>> {
     let query = r#"
-        SELECT a.insulin_assign_id, a.insulin_item_id, a.added_at, a.batch_no, a.notes, a.is_active, (i.units - IFNULL(SUM(u.units), 0)) as total_units
+        SELECT a.insulin_assign_id, i.insulin_item_name, a.insulin_item_id, a.added_at, a.batch_no, a.notes, a.is_active, (i.units - IFNULL(SUM(u.units), 0)) as total_units
         FROM insulin_assign a
         inner join insulin_item i
         ON a.insulin_item_id = i.insulin_item_id
@@ -212,12 +212,13 @@ pub fn select_all_insulin_assign_usage(conn: &mut PooledConn) -> Result<Vec<Insu
 
     let result: Vec<InsulinAssignUsage> = conn.query_map(
         query,
-        |(insulin_assign_id, insulin_item_id, added_at, batch_no, notes, is_active, total_units): (String, String, String,String, Option<String>,   i32, f32)| {
+        |(insulin_assign_id, insulin_item_name, insulin_item_id, added_at, batch_no, notes, is_active, total_units): (String, String, String, String,String, Option<String>,   i32, f32)| {
             InsulinAssignUsage {
                 insulin_assign_id: Uuid::parse_str(&insulin_assign_id)
                 .unwrap_or_else(|_| Uuid::nil()),
                 insulin_item_id: Uuid::parse_str(&insulin_item_id)
                 .unwrap_or_else(|_| Uuid::nil()),
+                insulin_item_name: insulin_item_name,
                 added_at: NaiveDateTime::parse_from_str(&added_at, "%Y-%m-%d %H:%M:%S")
                 .unwrap_or_else(|_| NaiveDateTime::from_timestamp_opt(0, 0).unwrap()),
                 is_active: is_active,
