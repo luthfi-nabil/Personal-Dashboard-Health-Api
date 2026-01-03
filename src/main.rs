@@ -3,10 +3,11 @@ mod models;
 mod routes;
 mod repository;
 mod helper;
+mod route_middleware;
 use actix_web::{App, HttpServer};
 use dotenv::dotenv;
 use std::env;
-
+use crate::route_middleware::json_error::JsonErrorMiddleware;
 use routes::main_route::init;
 use repository::init::{init_create_table_v2};
 #[actix_web::main]
@@ -21,6 +22,7 @@ async fn main() -> std::io::Result<()> {
 
     HttpServer::new(|| {
         App::new()
+            .wrap(JsonErrorMiddleware)
             .configure(init) // Initialize routes
     })
     .bind(format!("{}:{}", host, port))?

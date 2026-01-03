@@ -13,6 +13,8 @@ pub struct InsulinUsage {
     pub notes: Option<String>,
     #[serde(skip_deserializing)]
     pub is_active: i32,
+    #[serde(skip_deserializing)]
+    pub created_by: String
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -26,6 +28,8 @@ pub struct InsulinAssign {
     pub notes: Option<String>,
     #[serde(skip_deserializing)]
     pub is_active: i32,
+    #[serde(skip_deserializing)]
+    pub created_by: String
 }
 
 
@@ -41,7 +45,9 @@ pub struct InsulinAssignUsage {
     pub notes: Option<String>,
     #[serde(skip_deserializing)]
     pub is_active: i32,
-    pub total_units: f32
+    pub total_units: f32,
+    #[serde(skip_deserializing)]
+    pub created_by: String
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -56,4 +62,6 @@ pub struct InsulinItem {
     pub notes: Option<String>,
     #[serde(skip_deserializing)]
     pub is_active: i32,
+    #[serde(skip_deserializing)]
+    pub created_by: String
 }
