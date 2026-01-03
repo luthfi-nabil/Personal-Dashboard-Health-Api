@@ -337,7 +337,7 @@ pub fn insert_insulin_usage(conn: &mut PooledConn, insulin_usage: &InsulinUsage)
     let result = conn.exec_drop(
         query,
         params! {
-            "id" => insulin_usage.insulin_assign_id.to_string(),
+            "id" => insulin_usage.insulin_usage_id.to_string(),
             "item_id" => insulin_usage.insulin_assign_id.to_string(),
             "units" => insulin_usage.units,
             "administered_at" => insulin_usage.administered_at,
