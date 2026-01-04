@@ -46,6 +46,7 @@ pub struct InsulinAssignUsage {
     #[serde(skip_deserializing)]
     pub is_active: i32,
     pub total_units: f32,
+    pub last_used_at: Option<NaiveDateTime>,
     #[serde(skip_deserializing)]
     pub created_by: String
 }

@@ -286,6 +286,7 @@ pub fn select_all_insulin_assign_usage(conn: &mut PooledConn, insulin_assign: &I
         SELECT a.insulin_assign_id, i.insulin_item_name, a.insulin_item_id,
             a.added_at, a.batch_no, a.notes, a.is_active,
             (i.units - IFNULL(SUM(u.units), 0)) as total_units,
+            max(u.administered_at) as last_used_at,
             a.created_by
         FROM insulin_assign a
         INNER JOIN insulin_item i
@@ -324,7 +325,7 @@ pub fn select_all_insulin_assign_usage(conn: &mut PooledConn, insulin_assign: &I
     let result: Vec<InsulinAssignUsage> = conn.exec_map(
         query,
         params,
-        |(insulin_assign_id, insulin_item_name, insulin_item_id, added_at, batch_no, notes, is_active, total_units, created_by): (String, String, String, NaiveDateTime,String, Option<String>, i32, f64, String)| {
+        |(insulin_assign_id, insulin_item_name, insulin_item_id, added_at, batch_no, notes, is_active, total_units, last_used_at, created_by): (String, String, String, NaiveDateTime,String, Option<String>, i32, f64, Option<NaiveDateTime>, String)| {
             InsulinAssignUsage {
                 insulin_assign_id: Uuid::parse_str(&insulin_assign_id)
                 .unwrap_or_else(|_| Uuid::nil()),
@@ -336,6 +337,7 @@ pub fn select_all_insulin_assign_usage(conn: &mut PooledConn, insulin_assign: &I
                 batch_no: batch_no,
                 notes: notes,
                 total_units: total_units as f32,
+                last_used_at: last_used_at,
                 created_by: created_by,
             }
         },
