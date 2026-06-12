@@ -1,0 +1,719 @@
+openapi: 3.0.3
+info:
+  title: Health API
+  description: |
+    A RESTful API for tracking insulin usage and management.
+    This API allows users to manage insulin items, assign insulin batches, 
+    and record insulin usage logs. All endpoints are scoped per user via 
+    the `created_by` path parameter.
+  version: 0.1.0
+  contact:
+    name: Health API
+  license:
+    name: MIT
+
+servers:
+  - url: http://127.0.0.1:4000
+    description: Local development server
+
+tags:
+  - name: Insulin Items
+    description: Manage insulin type catalog (e.g., NovoRapid, Lantus)
+  - name: Insulin Assign
+    description: Manage insulin batch assignments (linking a batch/pen to an insulin type)
+  - name: Insulin Usage
+    description: Record and manage insulin administration events
+
+paths:
+  /api/user/{created_by}/insulin-item:
+    get:
+      tags:
+        - Insulin Items
+      summary: Get all insulin items
+      description: Retrieves all active insulin items belonging to the specified user.
+      operationId: getAllInsulinItems
+      parameters:
+        - $ref: '#/components/parameters/CreatedBy'
+      responses:
+        '200':
+          description: Successfully retrieved insulin items
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/InsulinItem'
+              example:
+                status: Success
+                code: 2001
+                message: Success get sources
+                description: ""
+                success: true
+                data:
+                  - insulin_item_id: "550e8400-e29b-41d4-a716-446655440000"
+                    insulin_item_name: "NovoRapid"
+                    units: 300.0
+                    uom: "IU"
+                    created_at: "2024-01-15T08:30:00"
+                    notes: "Fast-acting insulin"
+                    is_active: 1
+                    created_by: "user123"
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    post:
+      tags:
+        - Insulin Items
+      summary: Create a new insulin item
+      description: Creates a new insulin item (type/catalog entry) for the specified user.
+      operationId: createInsulinItem
+      parameters:
+        - $ref: '#/components/parameters/CreatedBy'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InsulinItemRequest'
+            example:
+              insulin_item_name: "NovoRapid"
+              units: 300.0
+              uom: "IU"
+              notes: "Fast-acting insulin pen"
+      responses:
+        '201':
+          description: Insulin item created successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/InsulinItem'
+              example:
+                status: Success
+                code: 2011
+                message: Insulin type created successfully
+                description: ""
+                success: true
+                data:
+                  insulin_item_id: "550e8400-e29b-41d4-a716-446655440000"
+                  insulin_item_name: "NovoRapid"
+                  units: 300.0
+                  uom: "IU"
+                  created_at: "2024-01-15T08:30:00"
+                  notes: "Fast-acting insulin pen"
+                  is_active: 1
+                  created_by: "user123"
+        '400':
+          description: Bad request – insertion failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/user/{created_by}/insulin-assign-usage:
+    get:
+      tags:
+        - Insulin Assign
+      summary: Get all insulin assign usage summaries
+      description: |
+        Retrieves all active insulin assign records with aggregated usage data 
+        for the specified user. Each record includes the total units consumed 
+        and the last time insulin was administered from that batch.
+      operationId: getAllInsulinAssignUsage
+      parameters:
+        - $ref: '#/components/parameters/CreatedBy'
+      responses:
+        '200':
+          description: Successfully retrieved insulin assign usage records
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/InsulinAssignUsage'
+              example:
+                status: Success
+                code: 2001
+                message: Success get insulin assign usage
+                description: ""
+                success: true
+                data:
+                  - insulin_assign_id: "660e8400-e29b-41d4-a716-446655440001"
+                    insulin_item_id: "550e8400-e29b-41d4-a716-446655440000"
+                    batch_no: "BATCH-2024-001"
+                    insulin_item_name: "NovoRapid"
+                    added_at: "2024-01-15T08:30:00"
+                    notes: "New pen opened"
+                    is_active: 1
+                    total_units: 42.5
+                    last_used_at: "2024-01-20T19:00:00"
+                    created_by: "user123"
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/user/{created_by}/insulin-assign:
+    post:
+      tags:
+        - Insulin Assign
+      summary: Assign a new insulin batch
+      description: |
+        Creates a new insulin batch assignment, linking a specific insulin type 
+        (by `insulin_item_id`) to a batch number. The referenced `insulin_item_id` 
+        must already exist for the user.
+      operationId: createInsulinAssign
+      parameters:
+        - $ref: '#/components/parameters/CreatedBy'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InsulinAssignRequest'
+            example:
+              insulin_item_id: "550e8400-e29b-41d4-a716-446655440000"
+              batch_no: "BATCH-2024-001"
+              notes: "New pen started on 15 Jan"
+      responses:
+        '201':
+          description: Insulin assign created successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/InsulinAssign'
+              example:
+                status: Success
+                code: 2011
+                message: Insulin assign created successfully
+                description: ""
+                success: true
+                data:
+                  insulin_assign_id: "660e8400-e29b-41d4-a716-446655440001"
+                  insulin_item_id: "550e8400-e29b-41d4-a716-446655440000"
+                  batch_no: "BATCH-2024-001"
+                  added_at: "2024-01-15T08:30:00"
+                  notes: "New pen started on 15 Jan"
+                  is_active: 1
+                  created_by: "user123"
+        '400':
+          description: Bad request – insulin item not found or insertion failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                itemNotFound:
+                  summary: Insulin item not found
+                  value:
+                    status: Error
+                    code: 4001
+                    message: Insulin item not found
+                    description: Please create the insulin item first.
+                    success: false
+                    data: null
+                insertionFailed:
+                  summary: Database insertion failed
+                  value:
+                    status: Error
+                    code: 4001
+                    message: Failed to create insulin assign
+                    description: "Database error details"
+                    success: false
+                    data: null
+
+  /api/user/{created_by}/insulin-assign/{insulin_assign_id}:
+    delete:
+      tags:
+        - Insulin Assign
+      summary: Delete an insulin batch assignment
+      description: |
+        Soft-deletes (deactivates) an insulin batch assignment by its UUID. 
+        Only assignments belonging to the specified user can be deleted.
+      operationId: deleteInsulinAssign
+      parameters:
+        - $ref: '#/components/parameters/CreatedBy'
+        - name: insulin_assign_id
+          in: path
+          required: true
+          description: UUID of the insulin batch assignment to delete
+          schema:
+            type: string
+            format: uuid
+          example: "660e8400-e29b-41d4-a716-446655440001"
+      responses:
+        '200':
+          description: Insulin assign deleted successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponseNoData'
+              example:
+                status: Success
+                code: 2001
+                message: Success delete insulin assign
+                description: ""
+                success: true
+                data: null
+        '500':
+          description: Internal server error – deletion failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/user/{created_by}/insulin-usage:
+    post:
+      tags:
+        - Insulin Usage
+      summary: Log an insulin administration event
+      description: |
+        Records a new insulin usage event (an administration/injection). 
+        The referenced `insulin_assign_id` must already exist for the user. 
+        The timestamp (`administered_at`) is set automatically by the server.
+      operationId: createInsulinUsage
+      parameters:
+        - $ref: '#/components/parameters/CreatedBy'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InsulinUsageRequest'
+            example:
+              insulin_assign_id: "660e8400-e29b-41d4-a716-446655440001"
+              units: 8.0
+              notes: "Before dinner"
+      responses:
+        '201':
+          description: Insulin usage logged successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/InsulinUsage'
+              example:
+                status: Success
+                code: 2011
+                message: Insulin usage created successfully
+                description: ""
+                success: true
+                data:
+                  insulin_usage_id: "770e8400-e29b-41d4-a716-446655440002"
+                  insulin_assign_id: "660e8400-e29b-41d4-a716-446655440001"
+                  units: 8.0
+                  administered_at: "2024-01-20T19:00:00"
+                  notes: "Before dinner"
+                  is_active: 1
+                  created_by: "user123"
+        '400':
+          description: Bad request – insulin assign not found or insertion failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                assignNotFound:
+                  summary: Insulin assign not found
+                  value:
+                    status: Error
+                    code: 4001
+                    message: Insulin assign not found
+                    description: Please create the insulin assign first.
+                    success: false
+                    data: null
+                insertionFailed:
+                  summary: Database insertion failed
+                  value:
+                    status: Error
+                    code: 4001
+                    message: Failed to create insulin usage
+                    description: "Database error details"
+                    success: false
+                    data: null
+
+    delete:
+      tags:
+        - Insulin Usage
+      summary: Delete an insulin usage record
+      description: |
+        Soft-deletes (deactivates) an insulin usage record by its UUID provided 
+        in the request path. The record must belong to the specified user.
+
+        > **Note:** The route for this endpoint is `DELETE /insulin-usage` but 
+        > the implementation reads the `insulin_usage_id` from the path via 
+        > `web::Path<String>`. Based on the router definition the id is expected 
+        > as a path segment appended after `/insulin-usage`.
+      operationId: deleteInsulinUsage
+      parameters:
+        - $ref: '#/components/parameters/CreatedBy'
+      responses:
+        '200':
+          description: Insulin usage record deleted successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponseNoData'
+              example:
+                status: Success
+                code: 2001
+                message: Success delete insulin item
+                description: ""
+                success: true
+                data: null
+        '500':
+          description: Internal server error – deletion failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  parameters:
+    CreatedBy:
+      name: created_by
+      in: path
+      required: true
+      description: |
+        The user identifier that scopes all resources. This value is extracted 
+        from the URL path by the `CreatedByMiddleware` and injected into every 
+        request handler as the owning user.
+      schema:
+        type: string
+      example: "user123"
+
+  schemas:
+    # ─── Request Bodies ───────────────────────────────────────────────────────
+
+    InsulinItemRequest:
+      type: object
+      required:
+        - insulin_item_name
+        - units
+        - uom
+      properties:
+        insulin_item_name:
+          type: string
+          description: Display name of the insulin type
+          example: "NovoRapid"
+        units:
+          type: number
+          format: float
+          description: Total units in the cartridge/pen
+          example: 300.0
+        uom:
+          type: string
+          description: Unit of measurement (e.g. IU)
+          example: "IU"
+        notes:
+          type: string
+          nullable: true
+          description: Optional notes about this insulin type
+          example: "Fast-acting insulin"
+
+    InsulinAssignRequest:
+      type: object
+      required:
+        - insulin_item_id
+        - batch_no
+      properties:
+        insulin_item_id:
+          type: string
+          format: uuid
+          description: UUID of the insulin item this batch belongs to
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        batch_no:
+          type: string
+          description: Batch or lot number for the insulin pen/cartridge
+          example: "BATCH-2024-001"
+        notes:
+          type: string
+          nullable: true
+          description: Optional notes about this batch assignment
+          example: "New pen opened"
+
+    InsulinUsageRequest:
+      type: object
+      required:
+        - insulin_assign_id
+        - units
+      properties:
+        insulin_assign_id:
+          type: string
+          format: uuid
+          description: UUID of the insulin batch assignment this usage comes from
+          example: "660e8400-e29b-41d4-a716-446655440001"
+        units:
+          type: number
+          format: float
+          description: Number of units administered in this injection
+          example: 8.0
+        notes:
+          type: string
+          nullable: true
+          description: Optional notes about this administration event
+          example: "Before dinner"
+
+    # ─── Full Resource Models ─────────────────────────────────────────────────
+
+    InsulinItem:
+      type: object
+      properties:
+        insulin_item_id:
+          type: string
+          format: uuid
+          description: Auto-generated UUID for the insulin item
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        insulin_item_name:
+          type: string
+          description: Display name of the insulin type
+          example: "NovoRapid"
+        units:
+          type: number
+          format: float
+          description: Total units in the cartridge/pen
+          example: 300.0
+        uom:
+          type: string
+          description: Unit of measurement
+          example: "IU"
+        created_at:
+          type: string
+          format: date-time
+          description: Timestamp when the item was created (server-set)
+          example: "2024-01-15T08:30:00"
+        notes:
+          type: string
+          nullable: true
+          description: Optional notes
+          example: "Fast-acting insulin"
+        is_active:
+          type: integer
+          description: Active flag (1 = active, 0 = inactive)
+          example: 1
+        created_by:
+          type: string
+          description: User identifier (server-set from path param)
+          example: "user123"
+
+    InsulinAssign:
+      type: object
+      properties:
+        insulin_assign_id:
+          type: string
+          format: uuid
+          description: Auto-generated UUID for the batch assignment
+          example: "660e8400-e29b-41d4-a716-446655440001"
+        insulin_item_id:
+          type: string
+          format: uuid
+          description: UUID of the parent insulin item
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        batch_no:
+          type: string
+          description: Batch or lot number
+          example: "BATCH-2024-001"
+        added_at:
+          type: string
+          format: date-time
+          description: Timestamp when the batch was assigned (server-set)
+          example: "2024-01-15T08:30:00"
+        notes:
+          type: string
+          nullable: true
+          description: Optional notes
+          example: "New pen started on 15 Jan"
+        is_active:
+          type: integer
+          description: Active flag (1 = active, 0 = inactive)
+          example: 1
+        created_by:
+          type: string
+          description: User identifier (server-set from path param)
+          example: "user123"
+
+    InsulinAssignUsage:
+      type: object
+      description: Aggregated view of an insulin batch assignment with usage statistics
+      properties:
+        insulin_assign_id:
+          type: string
+          format: uuid
+          description: UUID of the batch assignment
+          example: "660e8400-e29b-41d4-a716-446655440001"
+        insulin_item_id:
+          type: string
+          format: uuid
+          description: UUID of the parent insulin item
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        batch_no:
+          type: string
+          description: Batch or lot number
+          example: "BATCH-2024-001"
+        insulin_item_name:
+          type: string
+          description: Display name of the insulin type (joined from insulin_items)
+          example: "NovoRapid"
+        added_at:
+          type: string
+          format: date-time
+          description: Timestamp when the batch was assigned
+          example: "2024-01-15T08:30:00"
+        notes:
+          type: string
+          nullable: true
+          description: Optional notes
+          example: "New pen opened"
+        is_active:
+          type: integer
+          description: Active flag (1 = active, 0 = inactive)
+          example: 1
+        total_units:
+          type: number
+          format: float
+          description: Total units administered from this batch (aggregated)
+          example: 42.5
+        last_used_at:
+          type: string
+          format: date-time
+          nullable: true
+          description: Timestamp of the most recent usage event from this batch
+          example: "2024-01-20T19:00:00"
+        created_by:
+          type: string
+          description: User identifier
+          example: "user123"
+
+    InsulinUsage:
+      type: object
+      properties:
+        insulin_usage_id:
+          type: string
+          format: uuid
+          description: Auto-generated UUID for this usage event
+          example: "770e8400-e29b-41d4-a716-446655440002"
+        insulin_assign_id:
+          type: string
+          format: uuid
+          description: UUID of the batch assignment this usage is drawn from
+          example: "660e8400-e29b-41d4-a716-446655440001"
+        units:
+          type: number
+          format: float
+          description: Units administered in this injection
+          example: 8.0
+        administered_at:
+          type: string
+          format: date-time
+          description: Timestamp of administration (server-set)
+          example: "2024-01-20T19:00:00"
+        notes:
+          type: string
+          nullable: true
+          description: Optional notes
+          example: "Before dinner"
+        is_active:
+          type: integer
+          description: Active flag (1 = active, 0 = inactive)
+          example: 1
+        created_by:
+          type: string
+          description: User identifier (server-set from path param)
+          example: "user123"
+
+    # ─── Response Envelopes ───────────────────────────────────────────────────
+
+    SuccessResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          example: "Success"
+        code:
+          type: integer
+          example: 2001
+        message:
+          type: string
+          example: "Operation successful"
+        description:
+          type: string
+          example: ""
+        success:
+          type: boolean
+          example: true
+        data:
+          description: The response payload (varies per endpoint)
+
+    SuccessResponseNoData:
+      type: object
+      properties:
+        status:
+          type: string
+          example: "Success"
+        code:
+          type: integer
+          example: 2001
+        message:
+          type: string
+          example: "Operation successful"
+        description:
+          type: string
+          example: ""
+        success:
+          type: boolean
+          example: true
+        data:
+          nullable: true
+          example: null
+
+    ErrorResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          example: "Error"
+        code:
+          type: integer
+          example: 4001
+        message:
+          type: string
+          example: "Operation failed"
+        description:
+          type: string
+          description: Detailed error message (e.g. database error)
+          example: "UNIQUE constraint failed: insulin_items.insulin_item_id"
+        success:
+          type: boolean
+          example: false
+        data:
+          nullable: true
+          example: null
