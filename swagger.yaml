@@ -4,8 +4,8 @@ info:
   description: |
     A RESTful API for tracking insulin usage and management.
     This API allows users to manage insulin items, assign insulin batches, 
-    and record insulin usage logs. All endpoints are scoped per user via 
-    the `created_by` path parameter.
+    and record insulin usage logs. All endpoints require a bearer JWT and use
+    its validated `sub` claim as `created_by`.
   version: 0.1.0
   contact:
     name: Health API
@@ -16,6 +16,9 @@ servers:
   - url: http://127.0.0.1:4000
     description: Local development server
 
+security:
+  - bearerAuth: []
+
 tags:
   - name: Insulin Items
     description: Manage insulin type catalog (e.g., NovoRapid, Lantus)
@@ -25,15 +28,13 @@ tags:
     description: Record and manage insulin administration events
 
 paths:
-  /api/user/{created_by}/insulin-item:
+  /api/user/insulin-item:
     get:
       tags:
         - Insulin Items
       summary: Get all insulin items
       description: Retrieves all active insulin items belonging to the specified user.
       operationId: getAllInsulinItems
-      parameters:
-        - $ref: '#/components/parameters/CreatedBy'
       responses:
         '200':
           description: Successfully retrieved insulin items
@@ -76,8 +77,6 @@ paths:
       summary: Create a new insulin item
       description: Creates a new insulin item (type/catalog entry) for the specified user.
       operationId: createInsulinItem
-      parameters:
-        - $ref: '#/components/parameters/CreatedBy'
       requestBody:
         required: true
         content:
@@ -123,7 +122,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
 
-  /api/user/{created_by}/insulin-assign-usage:
+  /api/user/insulin-assign-usage:
     get:
       tags:
         - Insulin Assign
@@ -133,8 +132,6 @@ paths:
         for the specified user. Each record includes the total units consumed 
         and the last time insulin was administered from that batch.
       operationId: getAllInsulinAssignUsage
-      parameters:
-        - $ref: '#/components/parameters/CreatedBy'
       responses:
         '200':
           description: Successfully retrieved insulin assign usage records
@@ -173,7 +170,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
 
-  /api/user/{created_by}/insulin-assign:
+  /api/user/insulin-assign:
     post:
       tags:
         - Insulin Assign
@@ -183,8 +180,6 @@ paths:
         (by `insulin_item_id`) to a batch number. The referenced `insulin_item_id` 
         must already exist for the user.
       operationId: createInsulinAssign
-      parameters:
-        - $ref: '#/components/parameters/CreatedBy'
       requestBody:
         required: true
         content:
@@ -247,7 +242,7 @@ paths:
                     success: false
                     data: null
 
-  /api/user/{created_by}/insulin-assign/{insulin_assign_id}:
+  /api/user/insulin-assign/{insulin_assign_id}:
     delete:
       tags:
         - Insulin Assign
@@ -257,7 +252,6 @@ paths:
         Only assignments belonging to the specified user can be deleted.
       operationId: deleteInsulinAssign
       parameters:
-        - $ref: '#/components/parameters/CreatedBy'
         - name: insulin_assign_id
           in: path
           required: true
@@ -287,7 +281,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
 
-  /api/user/{created_by}/insulin-usage:
+  /api/user/insulin-usage:
     post:
       tags:
         - Insulin Usage
@@ -297,8 +291,6 @@ paths:
         The referenced `insulin_assign_id` must already exist for the user. 
         The timestamp (`administered_at`) is set automatically by the server.
       operationId: createInsulinUsage
-      parameters:
-        - $ref: '#/components/parameters/CreatedBy'
       requestBody:
         required: true
         content:
@@ -374,8 +366,6 @@ paths:
         > `web::Path<String>`. Based on the router definition the id is expected 
         > as a path segment appended after `/insulin-usage`.
       operationId: deleteInsulinUsage
-      parameters:
-        - $ref: '#/components/parameters/CreatedBy'
       responses:
         '200':
           description: Insulin usage record deleted successfully
@@ -398,18 +388,11 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
 
 components:
-  parameters:
-    CreatedBy:
-      name: created_by
-      in: path
-      required: true
-      description: |
-        The user identifier that scopes all resources. This value is extracted 
-        from the URL path by the `CreatedByMiddleware` and injected into every 
-        request handler as the owning user.
-      schema:
-        type: string
-      example: "user123"
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
 
   schemas:
     # ─── Request Bodies ───────────────────────────────────────────────────────
