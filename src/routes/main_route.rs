@@ -1,8 +1,8 @@
 use crate::handlers::flutter_sync_handler::{get_sync, post_sync_push};
 use crate::handlers::insulin_handler::{
     delete_insulin_assign_api, delete_insulin_usage_api, get_all_insulin_assign_usage_api,
-    get_all_insulin_items_api, post_insulin_assign_api, post_insulin_items_api,
-    post_insulin_usage_api,
+    get_all_insulin_items_api, get_all_insulin_usage_api, post_insulin_assign_api,
+    post_insulin_items_api, post_insulin_usage_api,
 };
 use crate::handlers::swagger_handler::{get_swagger_ui, get_swagger_yaml};
 use crate::route_middleware::get_user::CreatedByMiddleware;
@@ -36,6 +36,7 @@ pub fn init(cfg: &mut web::ServiceConfig) {
                 "/insulin-assign/{insulin_assign_id}",
                 web::delete().to(delete_insulin_assign_api),
             )
+            .route("/insulin-usage", web::get().to(get_all_insulin_usage_api))
             .route("/insulin-usage", web::post().to(post_insulin_usage_api))
             .route("/insulin-usage", web::delete().to(delete_insulin_usage_api)),
     );
