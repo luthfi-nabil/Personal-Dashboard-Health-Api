@@ -11,7 +11,7 @@ CREATE TABLE `insulin_assign` (
   `added_at` datetime NOT NULL,
   `notes` text DEFAULT NULL,
   `is_active` int(11) NOT NULL,
-  `created_by` varchar(255) DEFAULT NULL,
+  `created_by` varchar(255) NOT NULL,
   PRIMARY KEY (`insulin_assign_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_uca1400_ai_ci;
 
@@ -23,7 +23,7 @@ CREATE TABLE `insulin_item` (
   `created_at` datetime NOT NULL,
   `notes` text DEFAULT NULL,
   `is_active` int(11) NOT NULL,
-  `created_by` varchar(255) DEFAULT NULL,
+  `created_by` varchar(255) NOT NULL,
   PRIMARY KEY (`insulin_item_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_uca1400_ai_ci;
 
@@ -34,7 +34,7 @@ CREATE TABLE `insulin_usage` (
   `administered_at` datetime NOT NULL,
   `notes` text DEFAULT NULL,
   `is_active` int(11) NOT NULL,
-  `created_by` varchar(255) DEFAULT NULL,
+  `created_by` varchar(255) NOT NULL,
   PRIMARY KEY (`insulin_usage_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_uca1400_ai_ci;
 
@@ -46,6 +46,6 @@ CREATE TABLE `blood_sugar_log` (
   `meal_context` varchar(64) DEFAULT NULL,
   `notes` text DEFAULT NULL,
   `is_active` int(11) NOT NULL,
-  `created_by` varchar(255) DEFAULT NULL,
+  `created_by` varchar(255) NOT NULL,
   PRIMARY KEY (`blood_sugar_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_uca1400_ai_ci;
