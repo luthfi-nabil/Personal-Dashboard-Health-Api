@@ -37,3 +37,15 @@ CREATE TABLE `insulin_usage` (
   `created_by` varchar(255) DEFAULT NULL,
   PRIMARY KEY (`insulin_usage_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_uca1400_ai_ci;
+
+CREATE TABLE `blood_sugar_log` (
+  `blood_sugar_id` char(36) NOT NULL,
+  `level` float NOT NULL,
+  `unit` varchar(32) NOT NULL DEFAULT 'mg/dL',
+  `measured_at` datetime NOT NULL,
+  `meal_context` varchar(64) DEFAULT NULL,
+  `notes` text DEFAULT NULL,
+  `is_active` int(11) NOT NULL,
+  `created_by` varchar(255) DEFAULT NULL,
+  PRIMARY KEY (`blood_sugar_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_uca1400_ai_ci;

@@ -1,4 +1,6 @@
-use crate::models::insulin::{self, InsulinAssign, InsulinAssignUsage, InsulinItem, InsulinUsage};
+use crate::models::insulin::{
+    self, BloodSugarLog, InsulinAssign, InsulinAssignUsage, InsulinItem, InsulinUsage,
+};
 use crate::models::responses::DatabaseResult;
 use chrono::{DateTime, NaiveDateTime, Utc};
 use mysql::prelude::*;
@@ -45,6 +47,22 @@ pub fn create_insulin_item_table(conn: &mut PooledConn) -> Result<()> {
             units FLOAT NOT NULL,
             uom VARCHAR(255) NOT NULL,
             created_at DATETIME NOT NULL,
+            notes TEXT,
+            is_active INT NOT NULL,
+            created_by VARCHAR(255) NOT NULL
+        )",
+    )?;
+    Ok(())
+}
+
+pub fn create_blood_sugar_log_table(conn: &mut PooledConn) -> Result<()> {
+    conn.query_drop(
+        "CREATE TABLE IF NOT EXISTS blood_sugar_log (
+            blood_sugar_id CHAR(36) PRIMARY KEY,
+            level FLOAT NOT NULL,
+            unit VARCHAR(32) NOT NULL,
+            measured_at DATETIME NOT NULL,
+            meal_context VARCHAR(64),
             notes TEXT,
             is_active INT NOT NULL,
             created_by VARCHAR(255) NOT NULL
@@ -664,6 +682,119 @@ pub fn delete_insulin_usage(
     conn.exec_drop(
         "UPDATE insulin_usage SET is_active = 0 WHERE insulin_usage_id = :id AND created_by = :created_by",
         params! { "id" => insulin_usage.insulin_usage_id, "created_by" => &insulin_usage.created_by },
+    )?;
+    Ok(())
+}
+
+pub fn select_all_blood_sugar_logs(
+    conn: &mut PooledConn,
+    blood_sugar: &BloodSugarLog,
+) -> Result<Vec<BloodSugarLog>, Box<dyn Error>> {
+    let mut query = String::from(
+        r#"
+        SELECT blood_sugar_id, level, unit, measured_at, meal_context, notes, is_active, created_by
+        FROM blood_sugar_log
+        WHERE is_active = 1
+    "#,
+    );
+
+    let mut params: Vec<mysql::Value> = Vec::new();
+
+    if blood_sugar.blood_sugar_id != Uuid::nil() {
+        query.push_str(" AND blood_sugar_id = ?");
+        params.push(blood_sugar.blood_sugar_id.to_string().into());
+    }
+
+    if !blood_sugar.created_by.is_empty() {
+        query.push_str(" AND created_by = ?");
+        params.push(blood_sugar.created_by.clone().into());
+    }
+
+    query.push_str(" ORDER BY measured_at DESC");
+
+    let result: Vec<BloodSugarLog> =
+        conn.exec_map(
+            query,
+            params,
+            |(
+                blood_sugar_id,
+                level,
+                unit,
+                measured_at,
+                meal_context,
+                notes,
+                is_active,
+                created_by,
+            ): (
+                String,
+                f32,
+                String,
+                NaiveDateTime,
+                Option<String>,
+                Option<String>,
+                i32,
+                String,
+            )| {
+                BloodSugarLog {
+                    blood_sugar_id: Uuid::parse_str(&blood_sugar_id)
+                        .unwrap_or_else(|_| Uuid::nil()),
+                    level,
+                    unit,
+                    measured_at,
+                    meal_context,
+                    notes,
+                    is_active,
+                    created_by,
+                }
+            },
+        )?;
+
+    Ok(result)
+}
+
+pub fn insert_blood_sugar_log(
+    conn: &mut PooledConn,
+    blood_sugar: &BloodSugarLog,
+) -> Result<DatabaseResult, Box<dyn Error>> {
+    let query = r#"
+        INSERT INTO blood_sugar_log
+        (blood_sugar_id, level, unit, measured_at, meal_context, notes, is_active, created_by)
+        VALUES
+        (:id, :level, :unit, :measured_at, :meal_context, :notes, :is_active, :created_by)
+    "#;
+
+    let result = conn.exec_drop(
+        query,
+        params! {
+            "id" => blood_sugar.blood_sugar_id.to_string(),
+            "level" => blood_sugar.level,
+            "unit" => &blood_sugar.unit,
+            "measured_at" => blood_sugar.measured_at,
+            "meal_context" => &blood_sugar.meal_context,
+            "notes" => &blood_sugar.notes,
+            "is_active" => blood_sugar.is_active,
+            "created_by" => &blood_sugar.created_by,
+        },
+    );
+    match result {
+        Ok(_) => Ok(DatabaseResult::Inserted),
+
+        Err(MysqlError::MySqlError(ref e)) => match e.code {
+            1062u16 => Ok(DatabaseResult::Duplicate),
+            _ => Err(Box::new(MysqlError::MySqlError(e.clone()))),
+        },
+
+        Err(e) => Err(Box::new(e)),
+    }
+}
+
+pub fn delete_blood_sugar_log(
+    conn: &mut PooledConn,
+    blood_sugar: &BloodSugarLog,
+) -> Result<(), Box<dyn Error>> {
+    conn.exec_drop(
+        "UPDATE blood_sugar_log SET is_active = 0 WHERE blood_sugar_id = :id AND created_by = :created_by",
+        params! { "id" => blood_sugar.blood_sugar_id, "created_by" => &blood_sugar.created_by },
     )?;
     Ok(())
 }

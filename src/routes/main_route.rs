@@ -1,7 +1,8 @@
 use crate::handlers::flutter_sync_handler::{get_sync, post_sync_push};
 use crate::handlers::insulin_handler::{
-    delete_insulin_assign_api, delete_insulin_usage_api, get_all_insulin_assign_usage_api,
-    get_all_insulin_items_api, get_all_insulin_usage_api, post_insulin_assign_api,
+    delete_blood_sugar_log_api, delete_insulin_assign_api, delete_insulin_usage_api,
+    get_all_blood_sugar_logs_api, get_all_insulin_assign_usage_api, get_all_insulin_items_api,
+    get_all_insulin_usage_api, post_blood_sugar_log_api, post_insulin_assign_api,
     post_insulin_items_api, post_insulin_usage_api,
 };
 use crate::handlers::swagger_handler::{get_swagger_ui, get_swagger_yaml};
@@ -38,7 +39,13 @@ pub fn init(cfg: &mut web::ServiceConfig) {
             )
             .route("/insulin-usage", web::get().to(get_all_insulin_usage_api))
             .route("/insulin-usage", web::post().to(post_insulin_usage_api))
-            .route("/insulin-usage", web::delete().to(delete_insulin_usage_api)),
+            .route("/insulin-usage", web::delete().to(delete_insulin_usage_api))
+            .route("/blood-sugar", web::get().to(get_all_blood_sugar_logs_api))
+            .route("/blood-sugar", web::post().to(post_blood_sugar_log_api))
+            .route(
+                "/blood-sugar/{blood_sugar_id}",
+                web::delete().to(delete_blood_sugar_log_api),
+            ),
     );
 
     cfg.service(

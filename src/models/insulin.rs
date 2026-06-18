@@ -1,5 +1,5 @@
-use serde::{Deserialize, Serialize};
 use chrono::{DateTime, NaiveDateTime, Utc};
+use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -14,7 +14,7 @@ pub struct InsulinUsage {
     #[serde(skip_deserializing)]
     pub is_active: i32,
     #[serde(skip_deserializing)]
-    pub created_by: String
+    pub created_by: String,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -29,9 +29,8 @@ pub struct InsulinAssign {
     #[serde(skip_deserializing)]
     pub is_active: i32,
     #[serde(skip_deserializing)]
-    pub created_by: String
+    pub created_by: String,
 }
-
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct InsulinAssignUsage {
@@ -48,7 +47,7 @@ pub struct InsulinAssignUsage {
     pub total_units: f32,
     pub last_used_at: Option<NaiveDateTime>,
     #[serde(skip_deserializing)]
-    pub created_by: String
+    pub created_by: String,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -64,5 +63,21 @@ pub struct InsulinItem {
     #[serde(skip_deserializing)]
     pub is_active: i32,
     #[serde(skip_deserializing)]
-    pub created_by: String
+    pub created_by: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct BloodSugarLog {
+    #[serde(skip_deserializing)]
+    pub blood_sugar_id: Uuid,
+    pub level: f32,
+    pub unit: String,
+    #[serde(skip_deserializing)]
+    pub measured_at: NaiveDateTime,
+    pub meal_context: Option<String>,
+    pub notes: Option<String>,
+    #[serde(skip_deserializing)]
+    pub is_active: i32,
+    #[serde(skip_deserializing)]
+    pub created_by: String,
 }

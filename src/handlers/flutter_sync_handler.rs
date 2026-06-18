@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::helper::connection::establish_connection_v2;
 use crate::helper::jwt::{decode_username, extract_bearer_token};
-use crate::models::insulin::{InsulinAssign, InsulinItem, InsulinUsage};
+use crate::models::insulin::{BloodSugarLog, InsulinAssign, InsulinItem, InsulinUsage};
 use chrono::NaiveDateTime;
 use uuid::Uuid;
 
@@ -15,6 +15,7 @@ pub struct FlutterHealthSyncResponse {
     pub insulinItems: Vec<InsulinItem>,
     pub insulinAssigns: Vec<InsulinAssign>,
     pub insulinUsages: Vec<InsulinUsage>,
+    pub bloodSugarLogs: Vec<BloodSugarLog>,
     pub deletedRecords: Vec<String>,
 }
 
@@ -98,10 +99,42 @@ pub async fn get_sync(req: HttpRequest) -> impl Responder {
         }
     }
 
+    let mut blood_sugar_logs = Vec::new();
+    let db_blood_sugar: Vec<(
+        String,
+        f32,
+        String,
+        NaiveDateTime,
+        Option<String>,
+        Option<String>,
+        i32,
+        String,
+    )> = conn.exec(
+        "SELECT blood_sugar_id, level, unit, measured_at, meal_context, notes, is_active, created_by FROM blood_sugar_log WHERE created_by = :username",
+        params! { "username" => &username }
+    ).unwrap_or_default();
+
+    for (id, level, unit, measured_at, meal_context, notes, is_active, created_by) in db_blood_sugar
+    {
+        if let Ok(id_uuid) = Uuid::parse_str(&id) {
+            blood_sugar_logs.push(BloodSugarLog {
+                blood_sugar_id: id_uuid,
+                level,
+                unit,
+                measured_at,
+                meal_context,
+                notes,
+                is_active,
+                created_by,
+            });
+        }
+    }
+
     HttpResponse::Ok().json(FlutterHealthSyncResponse {
         insulinItems: insulin_items,
         insulinAssigns: insulin_assigns,
         insulinUsages: insulin_usages,
+        bloodSugarLogs: blood_sugar_logs,
         deletedRecords: vec![],
     })
 }

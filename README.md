@@ -107,6 +107,7 @@ With `APP_ENV=development`, browse to `/docs` for the Swagger UI, backed by
 - `GET /api/user/insulin-assign-usage` — combined assignment + usage view
 - `POST /api/user/insulin-assign`, `DELETE .../insulin-assign/{insulin_assign_id}` — batch/pen assignments
 - `POST/DELETE /api/user/insulin-usage` — dose logging
+- `GET/POST /api/user/blood-sugar`, `DELETE .../blood-sugar/{blood_sugar_id}` — blood sugar logs
 - `GET /api/flutter/health-sync`, `POST /api/flutter/health-sync/push` — offline-cache sync for the Flutter app
 
 ## CORS and logging

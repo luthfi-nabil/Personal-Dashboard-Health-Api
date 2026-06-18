@@ -1,10 +1,11 @@
 use crate::helper::connection::establish_connection_v2;
-use crate::models::insulin::{InsulinAssign, InsulinItem, InsulinUsage};
+use crate::models::insulin::{BloodSugarLog, InsulinAssign, InsulinItem, InsulinUsage};
 use crate::models::responses::{DatabaseResult, Response};
 use crate::repository::insulin_repository::{
-    delete_insulin_assign, delete_insulin_item, delete_insulin_usage, insert_insulin_assign,
-    insert_insulin_item, insert_insulin_usage, select_all_insulin_assign_usage,
-    select_all_insulin_item, select_all_insulin_usage, select_insulin_assign, select_insulin_item,
+    delete_blood_sugar_log, delete_insulin_assign, delete_insulin_item, delete_insulin_usage,
+    insert_blood_sugar_log, insert_insulin_assign, insert_insulin_item, insert_insulin_usage,
+    select_all_blood_sugar_logs, select_all_insulin_assign_usage, select_all_insulin_item,
+    select_all_insulin_usage, select_insulin_assign, select_insulin_item,
 };
 use crate::route_middleware::get_user::CreatedBy;
 use actix_web::{HttpMessage, HttpRequest, HttpResponse, web};
@@ -447,6 +448,140 @@ pub async fn delete_insulin_usage_api(req: HttpRequest, path: web::Path<String>)
                 status: "Error".to_string(),
                 code: crate::helper::response_code::ERROR_CODE_DATA_RETRIEVAL_FAILED,
                 message: "Failed to delete insulin item".to_string(),
+                description: err.to_string(),
+                data: None,
+                success: false,
+            };
+            HttpResponse::InternalServerError().json(response)
+        }
+    }
+}
+
+pub async fn get_all_blood_sugar_logs_api(req: HttpRequest) -> HttpResponse {
+    let mut conn = establish_connection_v2().expect("Failed to connect to database");
+    let created_by = req.extensions().get::<CreatedBy>().unwrap().0.clone();
+    let blood_sugar = BloodSugarLog {
+        blood_sugar_id: Uuid::nil(),
+        level: 0.0,
+        unit: "mg/dL".to_string(),
+        measured_at: Local::now().naive_local(),
+        meal_context: None,
+        notes: None,
+        is_active: 1,
+        created_by,
+    };
+    let result = select_all_blood_sugar_logs(&mut conn, &blood_sugar);
+
+    match result {
+        Ok(logs) => {
+            let response = Response {
+                status: "Success".to_string(),
+                code: crate::helper::response_code::RESPONSE_CODE_DATA_RETRIEVAL_SUCCESS,
+                message: "Success get blood sugar logs".to_string(),
+                description: "".to_string(),
+                data: Some(serde_json::to_value(logs).unwrap()),
+                success: true,
+            };
+            HttpResponse::Ok().json(response)
+        }
+        Err(err) => {
+            let response = Response {
+                status: "Error".to_string(),
+                code: crate::helper::response_code::ERROR_CODE_DATA_RETRIEVAL_FAILED,
+                message: "Failed to retrieve blood sugar logs".to_string(),
+                description: err.to_string(),
+                data: None,
+                success: false,
+            };
+            HttpResponse::InternalServerError().json(response)
+        }
+    }
+}
+
+pub async fn post_blood_sugar_log_api(
+    req: HttpRequest,
+    blood_sugar: web::Json<BloodSugarLog>,
+) -> HttpResponse {
+    let mut conn = establish_connection_v2().expect("Failed to connect to database");
+    let created_by = req.extensions().get::<CreatedBy>().unwrap().0.clone();
+    let new_blood_sugar = BloodSugarLog {
+        blood_sugar_id: Uuid::new_v4(),
+        level: blood_sugar.level,
+        unit: if blood_sugar.unit.trim().is_empty() {
+            "mg/dL".to_string()
+        } else {
+            blood_sugar.unit.clone()
+        },
+        measured_at: Local::now().naive_local(),
+        meal_context: blood_sugar.meal_context.clone(),
+        notes: blood_sugar.notes.clone(),
+        created_by,
+        is_active: 1,
+    };
+
+    let mut response = Response {
+        status: "Success".to_string(),
+        code: crate::helper::response_code::RESPONSE_CODE_DATA_INSERTION_SUCCESS,
+        message: "Blood sugar log created successfully".to_string(),
+        description: "".to_string(),
+        data: None,
+        success: true,
+    };
+    let result = insert_blood_sugar_log(&mut conn, &new_blood_sugar);
+
+    if result.is_err() {
+        response = Response {
+            status: "Error".to_string(),
+            message: "Failed to create blood sugar log".to_string(),
+            code: crate::helper::response_code::ERROR_CODE_DATA_INSERTION_FAILED,
+            description: result.err().unwrap().to_string(),
+            data: None,
+            success: false,
+        };
+    } else {
+        response.data = Some(serde_json::to_value(new_blood_sugar).unwrap());
+    }
+    if response.code == crate::helper::response_code::RESPONSE_CODE_DATA_INSERTION_SUCCESS {
+        HttpResponse::Created().json(response)
+    } else {
+        response.success = false;
+        HttpResponse::BadRequest().json(response)
+    }
+}
+
+pub async fn delete_blood_sugar_log_api(req: HttpRequest, path: web::Path<String>) -> HttpResponse {
+    let mut conn = establish_connection_v2().expect("Failed to connect to database");
+    let created_by = req.extensions().get::<CreatedBy>().unwrap().0.clone();
+    let blood_sugar_id = path.into_inner();
+    let blood_sugar = BloodSugarLog {
+        blood_sugar_id: Uuid::parse_str(&blood_sugar_id).unwrap(),
+        level: 0.0,
+        unit: "mg/dL".to_string(),
+        measured_at: Local::now().naive_local(),
+        meal_context: None,
+        notes: None,
+        is_active: 1,
+        created_by,
+    };
+    let result = delete_blood_sugar_log(&mut conn, &blood_sugar);
+
+    match result {
+        Ok(_) => {
+            let response = Response {
+                status: "Success".to_string(),
+                code: crate::helper::response_code::RESPONSE_CODE_DATA_RETRIEVAL_SUCCESS,
+                message: "Success delete blood sugar log".to_string(),
+                description: "".to_string(),
+                data: None,
+                success: true,
+            };
+            HttpResponse::Ok().json(response)
+        }
+        Err(err) => {
+            let response = Response {
+                status: "Error".to_string(),
+                code: crate::helper::response_code::ERROR_CODE_DATA_RETRIEVAL_FAILED,
+                message: "Failed to delete blood sugar log".to_string(),
                 description: err.to_string(),
                 data: None,
                 success: false,
